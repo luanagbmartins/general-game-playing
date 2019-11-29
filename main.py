@@ -23,7 +23,6 @@ from tensorboardX import SummaryWriter
 
 def main():
     tbwriter = SummaryWriter()
-    eval_log_dir = args.log_dir + "_eval"
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -146,9 +145,8 @@ def main():
         rollouts.after_update()
 
         # save for every interval-th episode or for the last epoch
-        if (j % args.save_interval == 0
-                or j == num_updates - 1) and args.save_dir != "":
-            save_path = os.path.join(args.save_dir, 'ppo')
+        if (j % args.save_interval == 0 or j == num_updates - 1) and args.save_dir != "":
+            save_path = os.path.join(args.save_dir, args.env_name)
             try:
                 os.makedirs(save_path)
             except OSError:
