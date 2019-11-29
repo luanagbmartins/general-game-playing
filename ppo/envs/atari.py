@@ -33,12 +33,6 @@ except ImportError:
 def make_env(env_id, seed, rank, log_dir, allow_early_resets):
     def _thunk():
         env = gym.make(env_id)
-
-        # is_atari = hasattr(gym.envs, 'atari') and isinstance(
-        #     env.unwrapped, gym.envs.atari.atari_env.AtariEnv)
-        # if is_atari:
-        #     env = make_atari(env_id)
-
         env = make_atari(env_id)
 
         env.seed(seed + rank)
@@ -53,15 +47,6 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets):
                 env,
                 os.path.join(log_dir, str(rank)),
                 allow_early_resets=allow_early_resets)
-
-        # if is_atari:
-        #     if len(env.observation_space.shape) == 3:
-        #         env = wrap_deepmind(env)
-        # elif len(env.observation_space.shape) == 3:
-        #     raise NotImplementedError(
-        #         "CNN models work only for atari,\n"
-        #         "please use a custom wrapper for a custom pixel input env.\n"
-        #         "See wrap_deepmind for an example.")
 
         if len(env.observation_space.shape) == 3:
             env = wrap_deepmind(env, episode_life=False)
@@ -217,7 +202,7 @@ class VecPyTorchFrameStack(VecEnvWrapper):
         self.venv = venv
         self.nstack = nstack
 
-        wos = venv.observation_space  # wrapped ob space
+        wos = venv.observation_space  
         self.shape_dim0 = wos.shape[0]
 
         low = np.repeat(wos.low, self.nstack, axis=0)
