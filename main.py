@@ -43,7 +43,7 @@ def main():
     if args.env_name.startswith('gvgai'):
         games = []
         for i in range(args.training_levels):
-            name = args.env_name + '-lvl' + i + '-v0'
+            name = args.env_name + '-lvl' + str(i) + '-v0'
             games.append(name)
 
         envs = make_vec_envs(games, args.seed, args.num_processes,
