@@ -17,13 +17,13 @@ from ppo import algo, utils
 from ppo.envs.atari import make_vec_envs
 from ppo.model import Policy
 from ppo.storage import RolloutStorage
-from evaluation import evaluate
 
 from tensorboardX import SummaryWriter
 
 
 def main():
     tbwriter = SummaryWriter()
+    eval_log_dir = args.log_dir + "_eval"
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -41,20 +41,36 @@ def main():
     device = torch.device("cuda:0" if args.cuda else "cpu")
 
     if args.env_name.startswith('gvgai'):
-        games = []
+        train = []
+        print('Training Levels: ')
         for i in range(args.training_levels):
             name = args.env_name + '-lvl' + str(i) + '-v0'
-            games.append(name)
+            print(name)
+            train.append(name)
 
-        envs = make_vec_envs(games, args.seed, args.num_processes,
+        test = []
+        print('\n\nTesting Levels: ')
+        for i in range (args.training_levels, 5):
+            name = args.env_name + '-lvl' + str(i) + '-v0'
+            print(name)
+            test.append(name)
+
+        print('\n\n')
+
+        envs = make_vec_envs(train, args.seed, args.num_processes,
                             args.gamma, args.log_dir, device, False, num_frame_stack=4)
+
+        eval_envs = make_vec_envs(test, args.seed, args.num_processes,
+                            args.gamma, eval_log_dir, device, True, num_frame_stack=4)
 
     else:
         envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-                            args.gamma, args.log_dir, device, False)    
+                            args.gamma, args.log_dir, device, False)   
+
+        eval_envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
+                            args.gamma, eval_log_dir, device, False)    
 
 
-    # print('Main: ', envs.observation_space.shape)
     actor_critic = Policy(
         envs.observation_space.shape,
         envs.action_space,
@@ -161,12 +177,53 @@ def main():
             tbwriter.add_scalar('value_loss', value_loss, total_num_steps)
             tbwriter.add_scalar('action_loss', action_loss, total_num_steps)
 
-        if (args.eval_interval is not None and len(episode_rewards) > 1
-                and j % args.eval_interval == 0):
-            ob_rms = utils.get_vec_normalize(envs).ob_rms
-            evaluate(actor_critic, ob_rms, args.env_name, args.seed,
-                     args.num_processes, eval_log_dir, device)
+        # ********************  Eval  **********************
+        if args.eval_interval is not None and len(episode_rewards) > 1 and j % args.eval_interval == 0:
+            print('Evaluating...')
+            # if args.env_name.startswith('gvgai'):
+            #     eval_envs = make_vec_envs(test, args.seed, args.num_processes,
+            #                     args.gamma, eval_log_dir, device, False, num_frame_stack=4)
+            # else:
+            #     eval_envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
+            #                     args.gamma, eval_log_dir, device, False)
+            
+            if eval_envs.venv.__class__.__name__ == "VecNormalize":
+                eval_envs.venv.ob_rms = envs.venv.ob_rms
 
+                def _obfilt(self, obs):
+                    if self.ob_rms:
+                        obs = np.clip((obs - self.ob_rms.mean) / np.sqrt(self.ob_rms.var + self.epsilon), -self.clipob, self.clipob)
+                        return obs
+                    else:
+                        return obs
+
+                eval_envs.venv._obfilt = types.MethodType(_obfilt, envs.venv)
+
+            eval_episode_rewards = []
+
+            obs = eval_envs.reset()
+            eval_recurrent_hidden_states = torch.zeros(args.num_processes,
+                            actor_critic.recurrent_hidden_state_size, device=device)
+            eval_masks = torch.zeros(args.num_processes, 1, device=device)
+
+            while len(eval_episode_rewards) < 10:
+                with torch.no_grad():
+                    _, action, _, eval_recurrent_hidden_states = actor_critic.act(
+                        obs, eval_recurrent_hidden_states, eval_masks, deterministic=True)
+
+                # Obser reward and next obs
+                obs, reward, done, infos = eval_envs.step(action)
+                eval_masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
+                for info in infos:
+                    if 'episode' in info.keys():
+                        eval_episode_rewards.append(info['episode']['r'])
+
+            eval_envs.reset()
+            print(" Evaluation using {} episodes: mean reward {:.5f}\n".
+                format(len(eval_episode_rewards), np.mean(eval_episode_rewards)))
+            
+            total_num_steps = (j + 1) * args.num_processes * args.num_steps
+            tbwriter.add_scalar('eval_reward', np.mean(eval_episode_rewards), total_num_steps)
 
 if __name__ == "__main__":
 
@@ -261,12 +318,12 @@ if __name__ == "__main__":
     parser.add_argument(
         '--eval-interval',
         type=int,
-        default=None,
+        default=10,
         help='eval interval, one eval per n updates (default: None)')
     parser.add_argument(
         '--num-env-steps',
         type=int,
-        default=10e6,
+        default=10e5,
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
         '--env-name',
