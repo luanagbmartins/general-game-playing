@@ -249,7 +249,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--use-gae',
         action='store_true',
-        default=False,
+        default=True,
         help='use generalized advantage estimation')
     parser.add_argument(
         '--gae-lambda',
@@ -296,12 +296,12 @@ if __name__ == "__main__":
     parser.add_argument(
         '--num-mini-batch',
         type=int,
-        default=4,
+        default=32,
         help='number of batches for ppo (default: 32)')
     parser.add_argument(
         '--clip-param',
         type=float,
-        default=0.1,
+        default=0.2,
         help='ppo clip parameter (default: 0.2)')
     parser.add_argument(
         '--log-interval',
@@ -321,7 +321,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--num-env-steps',
         type=int,
-        default=10e5,
+        default=30e5,
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
         '--env-name',
