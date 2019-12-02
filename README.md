@@ -5,7 +5,7 @@ This repository contains [Ilya Kostrikov](https://github.com/ikostrikov/pytorch-
 ## Requirements
 
 * Python 3 
-* [Conda] (https://docs.conda.io/projects/conda/en/latest/user-guide/install/)
+* [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/)
 * [OpenAI baselines](https://github.com/openai/baselines)
 * [GVGAI-GYM](https://github.com/rubenrtorrado/GVGAI_GYM)
 
