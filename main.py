@@ -207,6 +207,7 @@ def main():
                 eval_masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
                 for info in infos:
                     if 'episode' in info.keys():
+                        print(info)
                         eval_episode_rewards.append(info['episode']['r'])
 
             eval_envs.reset()
