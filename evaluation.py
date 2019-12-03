@@ -81,5 +81,6 @@ for i in range(3):
             env.close()
             rewards.append(episode_rewards)
 
+        print(np.mean(rewards), j)
         name = 'reward ' + str(i) + 'training level'
         tbwriter.add_scalar(name, np.mean(rewards), j)
