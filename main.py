@@ -177,14 +177,7 @@ def main():
 
         # ********************  Eval  **********************
         if args.eval_interval is not None and len(episode_rewards) > 1 and j % args.eval_interval == 0:
-            print('Evaluating...')
-            # if args.env_name.startswith('gvgai'):
-            #     eval_envs = make_vec_envs(test, args.seed, args.num_processes,
-            #                     args.gamma, eval_log_dir, device, False, num_frame_stack=4)
-            # else:
-            #     eval_envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-            #                     args.gamma, eval_log_dir, device, False)
-            
+            print('Evaluating...')            
             if eval_envs.venv.__class__.__name__ == "VecNormalize":
                 eval_envs.venv.ob_rms = envs.venv.ob_rms
 
@@ -214,6 +207,7 @@ def main():
                 eval_masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
                 for info in infos:
                     if 'episode' in info.keys():
+                        print(info)
                         eval_episode_rewards.append(info['episode']['r'])
 
             eval_envs.reset()

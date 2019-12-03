@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ppo.distributions import Bernoulli, Categorical, DiagGaussian
+from ppo.distributions import Categorical
 from ppo.utils import init
 
 
