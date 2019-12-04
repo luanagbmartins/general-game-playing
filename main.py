@@ -57,10 +57,10 @@ def main():
         print('\n\n')
 
         envs = make_vec_envs(train, args.seed, args.num_processes,
-                            args.gamma, args.log_dir, device, False, num_frame_stack=4)
+                            args.gamma, args.log_dir, device, False)
 
         eval_envs = make_vec_envs(test, args.seed, args.num_processes,
-                            args.gamma, eval_log_dir, device, True, num_frame_stack=4)
+                            args.gamma, eval_log_dir, device, True)
 
     else:
         envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
@@ -119,10 +119,11 @@ def main():
 
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(action.cpu())
-
             for info in infos:
                 if 'episode' in info.keys():
                     episode_rewards.append(info['episode']['r'])
+                    print(reward)
+                    print(info['episode']['r'])
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
@@ -325,8 +326,7 @@ if __name__ == "__main__":
         '--training-levels',
         type=int,
         default=2,
-        help='amount of training levels'
-    )
+        help='amount of training levels')
     parser.add_argument(
         '--log-dir',
         default='/tmp/gym/',
