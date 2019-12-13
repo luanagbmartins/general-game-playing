@@ -1,27 +1,33 @@
-import argparse
 import os
 import sys
 import copy
+import argparse
 import numpy as np
+
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('Agg')
+
 import torch
 import gym
 import gym_gvgai
+
+from ppo import algo, utils
 from ppo.envs.atari import VecPyTorch, make_vec_envs
 from ppo.utils import get_render_func, get_vec_normalize
 from baselines.common.vec_env.vec_normalize import VecNormalize
-from tensorboardX import SummaryWriter
 from ppo.storage import RolloutStorage
-
 from collections import deque
 
-from ppo import algo, utils
+from tensorboardX import SummaryWriter
+
 
 
 parser = argparse.ArgumentParser(description='PPO')
 parser.add_argument('--num-evals', type=int, default=10)
 parser.add_argument('--num-processes', type=int, default=4)
 parser.add_argument('--load-dir', type=str, default='trained_models/')
-parser.add_argument('--env-id', type=str, default='FetchPush-v1')
+parser.add_argument('--env-name', type=str, default='PongNoFrameskip-v4')
 parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--num-steps', type=int, default=2048)
 parser.add_argument('--ppo-epochs', type=int, default=10)
@@ -43,12 +49,15 @@ parser.add_argument('--predict-delta-obs', action='store_true')
 parser.add_argument('--use-linear-lr-decay', action='store_true')
 parser.add_argument('--use-clipped-value-loss', action='store_true')
 parser.add_argument('--use-tensorboard', action='store_true')
-parser.add_argument('--no-render', action='store_true', default=False)
+parser.add_argument('--save-frames', action='store_true', default=False)
 
 if __name__ == '__main__':
     # parse arguments
     args = parser.parse_args()
     load_dir = args.load_dir + args.env_id
+
+    if args.save_frames:
+        frame = 0
 
     # set device and random seeds
     device = torch.device("cpu")
@@ -98,15 +107,18 @@ if __name__ == '__main__':
                             actor_critic.recurrent_hidden_state_size, device=device)
             eval_masks = torch.zeros(args.num_processes, 1, device=device)
 
-            while len(eval_episode_rewards) < 10:
-                # eval_envs.render()
+            while len(eval_episode_rewards) < 1:
 
                 with torch.no_grad():
                     _, action, _, eval_recurrent_hidden_states = actor_critic.act(
                         obs, eval_recurrent_hidden_states, eval_masks, deterministic=True)
 
-                # Obser reward and next obs
-                eval_envs.render()
+                if render:
+                    plt.imshow(eval_envs.render(mode='rgb_array'))
+                    plt.axis('off')
+                    plt.savefig('frames/' + name + '-frame' + str(frame) + '.png', bbox_inches='tight')
+                    frame = frame + 1
+                
                 obs, reward, done, infos = eval_envs.step(action)
                 eval_masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
                 for info in infos:
