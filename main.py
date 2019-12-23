@@ -14,9 +14,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from ppo import algo, utils
-from ppo.envs.atari import make_vec_envs
+from ppo.envs.envs import make_vec_envs
 from ppo.model import Policy
 from ppo.storage import RolloutStorage
+
+from procgen import ProcgenEnv
 
 from tensorboardX import SummaryWriter
 
@@ -56,18 +58,20 @@ def main():
 
         print('\n\n')
 
-        envs = make_vec_envs(train, args.seed, args.num_processes,
-                            args.gamma, args.log_dir, device, False)
-
-        eval_envs = make_vec_envs(test, args.seed, args.num_processes,
-                            args.gamma, eval_log_dir, device, True)
-
+    elif args.env_name.startswith('procgen'):
+        train = 'procgen:procgen-coinrun-v0'
+        test = 'procgen:procgen-coinrun-v0'
+    
     else:
-        envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-                            args.gamma, args.log_dir, device, False)   
+        train = args.env_name
+        test = args.env_name
 
-        eval_envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-                            args.gamma, eval_log_dir, device, False)    
+      
+    envs = make_vec_envs(train, args.seed, args.num_processes,
+                        args.gamma, args.log_dir, device, False)   
+
+    eval_envs = make_vec_envs(test, args.seed, args.num_processes,
+                        args.gamma, eval_log_dir, device, True)    
 
 
     actor_critic = Policy(
@@ -119,11 +123,10 @@ def main():
 
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(action.cpu())
+            envs.render()
             for info in infos:
                 if 'episode' in info.keys():
                     episode_rewards.append(info['episode']['r'])
-                    print(reward)
-                    print(info['episode']['r'])
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
@@ -178,7 +181,12 @@ def main():
 
         # ********************  Eval  **********************
         if args.eval_interval is not None and len(episode_rewards) > 1 and j % args.eval_interval == 0:
-            print('Evaluating...')            
+            print('Evaluating...') 
+            if args.env_name.startswith('procgen'):
+                eval_envs.close()
+                eval_envs = make_vec_envs(test, args.seed, args.num_processes,
+                                            args.gamma, eval_log_dir, device, True)  
+
             if eval_envs.venv.__class__.__name__ == "VecNormalize":
                 eval_envs.venv.ob_rms = envs.venv.ob_rms
 
@@ -208,7 +216,6 @@ def main():
                 eval_masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
                 for info in infos:
                     if 'episode' in info.keys():
-                        print(info)
                         eval_episode_rewards.append(info['episode']['r'])
 
             eval_envs.reset()

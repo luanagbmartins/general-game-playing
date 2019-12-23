@@ -14,6 +14,16 @@ from baselines.common.vec_env.shmem_vec_env import ShmemVecEnv
 from baselines.common.vec_env.vec_normalize import \
     VecNormalize as VecNormalize_
 
+from baselines.common.vec_env import (
+    VecExtractDictObs,
+    VecMonitor,
+    VecFrameStack,
+    VecNormalize,    
+)
+
+from procgen import ProcgenEnv
+
+
 try:
     import dm_control2gym
 except ImportError:
@@ -33,7 +43,12 @@ except ImportError:
 def make_env(env_id, seed, rank, log_dir, allow_early_resets):
     def _thunk():
         env = gym.make(env_id)
-        env = make_atari(env_id)
+
+        atari = False
+        
+        if not env_id.startswith('procgen'):
+            env = make_atari(env_id)
+            atari = True
 
         env.seed(seed + rank)
 
@@ -49,7 +64,7 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets):
                 allow_early_resets=allow_early_resets)
 
         if len(env.observation_space.shape) == 3:
-            env = wrap_deepmind(env, episode_life=False)
+            env = wrap_deepmind(env, episode_life=False, atari=atari)
 
         # If the input has shape (W,H,3), wrap for PyTorch convolutions
         obs_shape = env.observation_space.shape

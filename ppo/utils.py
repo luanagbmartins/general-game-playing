@@ -4,7 +4,7 @@ import os
 import torch
 import torch.nn as nn
 
-from ppo.envs.atari import VecNormalize
+from ppo.envs.envs import VecNormalize
 
 
 # Get a render function
