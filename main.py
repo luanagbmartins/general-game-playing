@@ -123,7 +123,6 @@ def main():
 
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(action.cpu())
-            envs.render()
             for info in infos:
                 if 'episode' in info.keys():
                     episode_rewards.append(info['episode']['r'])
@@ -323,7 +322,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--num-env-steps',
         type=int,
-        default=30e5,
+        default=10e6,
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
         '--env-name',
