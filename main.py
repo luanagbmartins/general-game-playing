@@ -163,15 +163,24 @@ def main():
         if j % args.log_interval == 0 and len(episode_rewards) > 1:
             total_num_steps = (j + 1) * args.num_processes * args.num_steps
             end = time.time()
+            # print(
+            #     "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
+            #     .format(j, total_num_steps,
+            #             int(total_num_steps / (end - start)),
+            #             len(episode_rewards), np.mean(episode_rewards),
+            #             np.median(episode_rewards), np.min(episode_rewards),
+            #             np.max(episode_rewards), dist_entropy, value_loss,
+            #             action_loss))
+
+            print(episode_rewards)
             print(
-                "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
+                "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: {:.1f} %\n"
                 .format(j, total_num_steps,
                         int(total_num_steps / (end - start)),
-                        len(episode_rewards), np.mean(episode_rewards),
-                        np.median(episode_rewards), np.min(episode_rewards),
-                        np.max(episode_rewards), dist_entropy, value_loss,
-                        action_loss))
+                        len(episode_rewards), episode_rewards.count(10)/len(episode_rewards)
+            ))
             
+            tbwriter.add_scalar('porcentage_wins', episode_rewards.count(10)/len(episode_rewards), total_num_steps)
             tbwriter.add_scalar('mean_reward', np.mean(episode_rewards), total_num_steps)
             tbwriter.add_scalar('median_reward', np.median(episode_rewards), total_num_steps)
             tbwriter.add_scalar('dist_entropy', dist_entropy, total_num_steps)
@@ -218,10 +227,15 @@ def main():
                         eval_episode_rewards.append(info['episode']['r'])
 
             eval_envs.reset()
+            # print(" Evaluation using {} episodes: mean reward {:.5f}\n".
+            #     format(len(eval_episode_rewards), np.mean(eval_episode_rewards)))
+
             print(" Evaluation using {} episodes: mean reward {:.5f}\n".
-                format(len(eval_episode_rewards), np.mean(eval_episode_rewards)))
+                format(len(eval_episode_rewards), eval_episode_rewards.count(10)/len(eval_episode_rewards)))
             
             total_num_steps = (j + 1) * args.num_processes * args.num_steps
+
+            tbwriter.add_scalar('eval_porcentage_wins', eval_episode_rewards.count(10)/len(eval_episode_rewards), total_num_steps)
             tbwriter.add_scalar('eval_reward', np.mean(eval_episode_rewards), total_num_steps)
 
 if __name__ == "__main__":
@@ -322,7 +336,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--num-env-steps',
         type=int,
-        default=10e6,
+        default=10e7,
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
         '--env-name',

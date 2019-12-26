@@ -3,6 +3,7 @@ import sys
 import copy
 import argparse
 import numpy as np
+import time
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ import gym
 import gym_gvgai
 
 from ppo import algo, utils
-from ppo.envs.atari import VecPyTorch, make_vec_envs
+from ppo.envs.envs import VecPyTorch, make_vec_envs
 from ppo.utils import get_render_func, get_vec_normalize
 from baselines.common.vec_env.vec_normalize import VecNormalize
 from ppo.storage import RolloutStorage
@@ -49,36 +50,37 @@ parser.add_argument('--predict-delta-obs', action='store_true')
 parser.add_argument('--use-linear-lr-decay', action='store_true')
 parser.add_argument('--use-clipped-value-loss', action='store_true')
 parser.add_argument('--use-tensorboard', action='store_true')
-parser.add_argument('--save-frames', action='store_true', default=False)
+# parser.add_argument('--save-frames', action='store_true', default=False)
 
 if __name__ == '__main__':
     # parse arguments
     args = parser.parse_args()
-    load_dir = args.load_dir + args.env_id
-
-    if args.save_frames:
-        frame = 0
+    load_dir = args.load_dir + args.env_name
 
     # set device and random seeds
     device = torch.device("cpu")
     torch.set_num_threads(1)
     torch.manual_seed(args.seed)
 
-    for i in range(3):
+    for i in range(1):
         # create agent
-        load_dir = args.load_dir + args.env_id
-        save = args.env_id + '-' + str(i+1) +'TL.pt'
+        load_dir = args.load_dir + args.env_name
+        
+        # actor_critic, ob_rms = \
+        #                 torch.load(os.path.join(load_dir,  args.env_name + '-' + str(i+1) +'TL.pt'))
+
         actor_critic, ob_rms = \
-                        torch.load(os.path.join(load_dir,  args.env_id + '-' + str(i+1) +'TL.pt'))
+                       torch.load(os.path.join(load_dir,  'procgen.pt'))
 
         actor_critic.to(device)
         print('Model ', i+1)
 
-        for j in range(5):
+        for j in range(10):
             print('Game level ', j+1)
             
             # setup environment
-            name = args.env_id + '-lvl'+ str(j) + '-v0'
+            # name = args.env_name + '-lvl'+ str(j) + '-v0'
+            name = 'procgen:procgen-coinrun-v0'
             eval_envs = make_vec_envs(env_name=name,
                                 seed=args.seed,
                                 num_processes=args.num_processes,
@@ -112,14 +114,10 @@ if __name__ == '__main__':
                 with torch.no_grad():
                     _, action, _, eval_recurrent_hidden_states = actor_critic.act(
                         obs, eval_recurrent_hidden_states, eval_masks, deterministic=True)
-
-                if render:
-                    plt.imshow(eval_envs.render(mode='rgb_array'))
-                    plt.axis('off')
-                    plt.savefig('frames/' + name + '-frame' + str(frame) + '.png', bbox_inches='tight')
-                    frame = frame + 1
                 
                 obs, reward, done, infos = eval_envs.step(action)
+                eval_envs.render()
+                time.sleep(0.2)
                 eval_masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
                 for info in infos:
                     if 'episode' in info.keys():
