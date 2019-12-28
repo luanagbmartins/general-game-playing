@@ -40,15 +40,20 @@ except ImportError:
     pass
 
 
-def make_env(env_id, seed, rank, log_dir, allow_early_resets):
+def make_env(env_id, seed, rank, log_dir, allow_early_resets, eval):
     def _thunk():
-        env = gym.make(env_id)
-
         atari = False
         
         if not env_id.startswith('procgen'):
+            env = gym.make(env_id)
             env = make_atari(env_id)
             atari = True
+        
+        else:
+            if eval:
+                env = gym.make(env_id,  start_level=0, num_levels=500)
+            else: 
+                env = gym.make(env_id,  start_level=501, num_levels=500)
 
         env.seed(seed + rank)
 
@@ -83,10 +88,11 @@ def make_vec_envs(env_name,
                   log_dir,
                   device,
                   allow_early_resets,
+                  eval,
                   num_frame_stack=None):
 
     envs = [
-        make_env(env_name[i%len(env_name)] if type(env_name) is list else env_name, seed, i, log_dir, allow_early_resets)
+        make_env(env_name[i%len(env_name)] if type(env_name) is list else env_name, seed, i, log_dir, allow_early_resets, eval)
         for i in range(num_processes)
     ]
 

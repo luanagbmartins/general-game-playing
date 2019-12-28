@@ -68,10 +68,10 @@ def main():
 
       
     envs = make_vec_envs(train, args.seed, args.num_processes,
-                        args.gamma, args.log_dir, device, False)   
+                        args.gamma, args.log_dir, device, False, False)   
 
     eval_envs = make_vec_envs(test, args.seed, args.num_processes,
-                        args.gamma, eval_log_dir, device, True)    
+                        args.gamma, eval_log_dir, device, True, True)    
 
 
     actor_critic = Policy(
@@ -101,7 +101,7 @@ def main():
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
-    episode_rewards = deque(maxlen=10)
+    episode_rewards = deque(maxlen=100)
 
     start = time.time()
     num_updates = int(args.num_env_steps) // args.num_steps // args.num_processes
@@ -172,7 +172,6 @@ def main():
             #             np.max(episode_rewards), dist_entropy, value_loss,
             #             action_loss))
 
-            print(episode_rewards)
             print(
                 "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: {:.1f} %\n"
                 .format(j, total_num_steps,
@@ -180,12 +179,15 @@ def main():
                         len(episode_rewards), episode_rewards.count(10)/len(episode_rewards)
             ))
             
-            tbwriter.add_scalar('porcentage_wins', episode_rewards.count(10)/len(episode_rewards), total_num_steps)
+            
             tbwriter.add_scalar('mean_reward', np.mean(episode_rewards), total_num_steps)
             tbwriter.add_scalar('median_reward', np.median(episode_rewards), total_num_steps)
             tbwriter.add_scalar('dist_entropy', dist_entropy, total_num_steps)
             tbwriter.add_scalar('value_loss', value_loss, total_num_steps)
             tbwriter.add_scalar('action_loss', action_loss, total_num_steps)
+
+        if j % args.log_interval == 0 and len(episode_rewards) == 100:
+            tbwriter.add_scalar('porcentage_wins', episode_rewards.count(10)/len(episode_rewards), total_num_steps)
 
         # ********************  Eval  **********************
         if args.eval_interval is not None and len(episode_rewards) > 1 and j % args.eval_interval == 0:
@@ -214,7 +216,7 @@ def main():
                             actor_critic.recurrent_hidden_state_size, device=device)
             eval_masks = torch.zeros(args.num_processes, 1, device=device)
 
-            while len(eval_episode_rewards) < 10:
+            while len(eval_episode_rewards) < 100:
                 with torch.no_grad():
                     _, action, _, eval_recurrent_hidden_states = actor_critic.act(
                         obs, eval_recurrent_hidden_states, eval_masks, deterministic=True)
@@ -244,7 +246,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--lr', 
         type=float, 
-        default=2.5e-4, 
+        default=5e-4, 
         help='learning rate (default: 7e-4)')
     parser.add_argument(
         '--eps',
@@ -259,7 +261,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--gamma',
         type=float,
-        default=0.99,
+        default=0.999,
         help='discount factor for rewards (default: 0.99)')
     parser.add_argument(
         '--use-gae',
@@ -301,17 +303,17 @@ if __name__ == "__main__":
     parser.add_argument(
         '--num-steps',
         type=int,
-        default=128,
+        default=256,
         help='number of forward steps in A2C (default: 5)')
     parser.add_argument(
         '--ppo-epoch',
         type=int,
-        default=4,
+        default=3,
         help='number of ppo epochs (default: 4)')
     parser.add_argument(
         '--num-mini-batch',
         type=int,
-        default=32,
+        default=8,
         help='number of batches for ppo (default: 32)')
     parser.add_argument(
         '--clip-param',
@@ -336,7 +338,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--num-env-steps',
         type=int,
-        default=10e7,
+        default=10e6,
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
         '--env-name',
