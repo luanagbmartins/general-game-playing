@@ -195,7 +195,7 @@ def main():
             if args.env_name.startswith('procgen'):
                 eval_envs.close()
                 eval_envs = make_vec_envs(test, args.seed, args.num_processes,
-                                            args.gamma, eval_log_dir, device, True)  
+                                            args.gamma, eval_log_dir, device, True, True)  
 
             if eval_envs.venv.__class__.__name__ == "VecNormalize":
                 eval_envs.venv.ob_rms = envs.venv.ob_rms
