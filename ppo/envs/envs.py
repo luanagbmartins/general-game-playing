@@ -51,9 +51,9 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, eval):
         
         else:
             if eval:
-                env = gym.make(env_id,  start_level=0, num_levels=500)
+                env = gym.make(env_id,  start_level=0, num_levels=500, distribution_mode='easy')
             else: 
-                env = gym.make(env_id,  start_level=501, num_levels=500)
+                env = gym.make(env_id,  start_level=501, num_levels=500, distribution_mode='easy')
 
         env.seed(seed + rank)
 
