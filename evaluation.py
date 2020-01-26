@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(description='PPO')
 parser.add_argument('--num-evals', type=int, default=10)
 parser.add_argument('--num-processes', type=int, default=4)
 parser.add_argument('--load-dir', type=str, default='trained_models/')
-parser.add_argument('--env-name', type=str, default='PongNoFrameskip-v4')
+parser.add_argument('--env-name', type=str, default='gvgai-aliens')
 parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--num-steps', type=int, default=2048)
 parser.add_argument('--ppo-epochs', type=int, default=10)
@@ -48,9 +48,16 @@ parser.add_argument('--predict-delta-obs', action='store_true')
 parser.add_argument('--use-linear-lr-decay', action='store_true')
 parser.add_argument('--use-clipped-value-loss', action='store_true')
 parser.add_argument('--use-tensorboard', action='store_true')
-parser.add_argument('--render', action='store_true', default=False)
+parser.add_argument('--render', action='store_true', default=True)
 
 if __name__ == '__main__':
+    print('WARNING: This code assumes that there are three models saved for the selected GVGAI_GYM game.\
+          This is due to the fact that the tests were carried out modifying the training and testing set for each game,\
+          generating three combinations:\
+          - 1 training game, 4 testing games;\
+          - 2 training games, 3 testing games;\
+          - 3 training games, 2 testing games.')
+
     # parse arguments
     args = parser.parse_args()
     load_dir = args.load_dir + args.env_id

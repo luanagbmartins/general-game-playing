@@ -317,8 +317,8 @@ if __name__ == "__main__":
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
         '--env-name',
-        default='PongNoFrameskip-v4',
-        help='environment to train on (default: PongNoFrameskip-v4)')
+        default='gvgai-alien',
+        help='environment to train on (default: gvgai-alien)')
     parser.add_argument(
         '--training-levels',
         type=int,
